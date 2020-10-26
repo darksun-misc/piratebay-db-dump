@@ -1,0 +1,16 @@
+{
+  "name": "piratebay-db-dump",
+  "version": "1.0.0",
+  "description": "A CSV file with all torrent infohashes and names from thepiratebay.org on the moment of 2019-Sep-14. You can lookup the content you need by the name and download the data by inserting the infohash into your favourite torrent client like deluge (you will need to convert it from base64 to hex, google some online tool). ",
+  "keywords": [
+    "dump",
+    "torrent",
+    "thepiratebay.org"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/klesun/piratebay-db-dump.git#master"
+  },
+  "author": "weebs",
+  "license": "ISC"
+}
