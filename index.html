@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TPB DB Serverless Client</title>
+</head>
+<body>
+
+<div style="text-align: center">
+    <p>This is a simple page that provides you convenient search access to the static <a href="https://github.com/klesun-misc/piratebay-db-dump">200 MiB CSV</a> list of torrents referenced in this repo</p>
+
+    <div>
+        <form onsubmit="alert('Please wait for torrent list to load!'); return false;">
+            <div style="margin: 8px">
+                <input type="text" name="nameSubstring" placeholder="type part of file name here..."/>
+                <button>Search</button>
+            </div>
+            <div>
+                <label>
+                    <span>Limit Per Page: </span>
+                    <input type="number" name="maxEntriesPerPage" min="1" max="50000" value="750"/>
+                </label>
+            </div>
+        </form>
+    </div>
+
+    <p id="status-panel">Please wait, loading libs...</p>
+</div>
+
+<div>
+    <table style="margin: 0 auto">
+        <thead>
+            <tr>
+                <th data-name="addedDt">Added</th>
+                <th data-name="infohash">Infohash (Download Link)</th>
+                <th data-name="name">Name</th>
+                <th data-name="size">Size</th>
+            </tr>
+        </thead>
+        <tbody id="matched-entries-list"></tbody>
+    </table>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"
+        integrity="sha512-rKFvwjvE4liWPlFnvH4ZhRDfNZ9FOpdkD/BU5gAIA3VS3vOQrQ5BjKgbO3kxebKhHdHcNUHLqxQYSoxee9UwgA=="
+        crossorigin="anonymous"></script>
+
+<script type="module">
+    import {Dom} from "./web_client/Dom.js";
+
+    const Papa = window.Papa;
+
+    const escapeRegex = (str) => str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+
+    /** @see https://stackoverflow.com/a/39460727/2750743 */
+    function base64ToHex(str) {
+      const raw = atob(str);
+      let result = '';
+      for (let i = 0; i < raw.length; i++) {
+        const hex = raw.charCodeAt(i).toString(16);
+        result += (hex.length === 2 ? hex : '0' + hex);
+      }
+      return result.toUpperCase();
+    }
+
+    /** @param {RegExp} reg */
+    const getRegexIterator = function*(superstring, reg) {
+        let match;
+        while (match = reg.exec(superstring)) {
+            yield match.index;
+        }
+    }
+
+    /** @return {Generator<number>} */
+    const indexOfAnyCase = (superstring, substring) => {
+        if (!substring) {
+            throw new Error('Empty substring search not possible');
+        }
+        const regSrc = escapeRegex(substring);
+        const reg = new RegExp(regSrc, 'ig');
+        return getRegexIterator(superstring, reg);
+    };
+
+    /** @return {Generator<number>} */
+    const getLinesIterator = function*(superstring) {
+        const reg = new RegExp(/\n/g);
+        for (const index of getRegexIterator(superstring, reg)) {
+            yield index + 1;
+        }
+    };
+
+    const parseRowAt = (csvText, index) => {
+        const prevBr = csvText.lastIndexOf('\n', index);
+        const start = prevBr === -1 ? 0 : prevBr + 1;
+        const nextBr = csvText.indexOf('\n', index);
+        const end = nextBr === -1 ? csvText.length : nextBr;
+
+        const line = csvText.slice(start, end);
+
+        const parsed = Papa.parse(line, {delimiter: ';'});
+        const valuesTuple = parsed.data[0];
+
+        return valuesTuple;
+    };
+
+    const gui = {
+        statusPanel: document.getElementById('status-panel'),
+        searchForm: document.forms[0],
+        matchedEntriesList: document.getElementById('matched-entries-list'),
+    };
+
+    let bytesLoaded = 0;
+    const csvFetchStartMs = Date.now();
+    const trackBytesLoaded = rs => {
+        const reader = rs.body.getReader();
+        const stream = new ReadableStream({
+            start(controller) {
+                const pump = () => {
+                    return reader.read().then(({ done, value }) => {
+                        if (done) {
+                            controller.close();
+                        } else {
+                            bytesLoaded += value.length;
+                            gui.statusPanel.textContent = 'Bytes Loaded: ' + (bytesLoaded / 1024 / 1024).toFixed(3) + ' MiB / ~200 MiB in ' + (Date.now() - csvFetchStartMs) + ' ms';
+                            controller.enqueue(value);
+                            return pump();
+                        }
+                    });
+                };
+                return pump();
+            },
+        });
+        return new Response(stream);
+    };
+
+    gui.statusPanel.textContent = 'Retrieving CSV (~200 MiB)...\n';
+
+    const urlToCsvTextPromise = url => fetch(url)
+        .then(trackBytesLoaded)
+        .then(rs => rs.text());
+
+    const halfPromise = urlToCsvTextPromise('./piratebay_db_dump_2015_10_27T04_10_50_to_2019_09_14T22_09_31.csv');
+
+    const csvTextPromises = [
+        urlToCsvTextPromise('./random_torrent_contributions.csv'),
+        halfPromise,
+        // note, a lot of porn in the top of this one, better not put it first
+        halfPromise.then(() => urlToCsvTextPromise('./piratebay_db_dump_2004_03_25T22_03_00_to_2015_10_27T04_10_22.csv')),
+    ];
+
+    // could potentially allow searching without waiting for full data
+    // to load... will need to integrate with ReadableStream more tightly then
+
+    const fetchedCsvTexts = [];
+    csvTextPromises.forEach(promise => promise.then(csvText => fetchedCsvTexts.push(csvText)));
+
+    const updateTable = (csvText, tbody, maxEntries) => {
+        const nameSubstring = gui.searchForm['nameSubstring'].value;
+
+        let matchesFound = 0;
+
+        const colsBr = csvText.indexOf('\n');
+        const indexesIter = nameSubstring
+            ? indexOfAnyCase(csvText, nameSubstring)
+            : getLinesIterator(csvText);
+
+        for (const index of indexesIter) {
+            const valuesTuple = parseRowAt(csvText, index);
+            const [addedDt, infohashBase64, name, size] = valuesTuple;
+            if (!name.toLowerCase().includes(nameSubstring.toLowerCase())) {
+                continue; // text search matched the hex string - ignore
+            }
+            if (index < colsBr) {
+                continue; // column headers matched the pattern
+            }
+
+            const infohash = base64ToHex(infohashBase64);
+            const tr = Dom('tr', {}, [
+                Dom('td', {'data-name': 'addedDt'}, addedDt),
+                Dom('td', {'data-name': 'infohash'}, [
+                    Dom('a', {
+                        'href': 'magnet:?xt=urn:btih:' + infohash,
+                    }, [
+                        Dom('span', {}, '🧲 '),
+                        Dom('span', {}, infohash),
+                    ]),
+                ]),
+                // would be nice to highlight the part of text that was matched
+                Dom('td', {'data-name': 'name'}, name),
+                Dom('td', {'data-name': 'size'}, (size / 1024 / 1024).toFixed(3) + ' MiB'),
+            ]);
+            tbody.appendChild(tr);
+            if (++matchesFound >= maxEntries) {
+                break;
+            }
+        }
+
+        return {matchesFound};
+    };
+
+    halfPromise.then(async firstCsvText => {
+        const tbody = gui.matchedEntriesList;
+        gui.searchForm.onsubmit = (evt) => {
+            evt.preventDefault();
+            tbody.innerHTML = '';
+            let maxEntries = +gui.searchForm['maxEntriesPerPage'].value;
+            let totalMatchesFound = 0;
+            for (const csvText of fetchedCsvTexts) {
+                const {matchesFound} = updateTable(csvText, tbody, maxEntries - totalMatchesFound);
+                totalMatchesFound += matchesFound;
+                if (totalMatchesFound >= maxEntries) {
+                    break;
+                }
+            }
+            gui.statusPanel.textContent = 'Found ' + totalMatchesFound + ' matches\n';
+        };
+        const maxEntries = +gui.searchForm['maxEntriesPerPage'].value;
+        updateTable(firstCsvText, tbody, maxEntries);
+    });
+</script>
+
+</body>
+
+<style>
+    #status-panel {
+        white-space: pre;
+    }
+
+    table {
+        border-collapse: collapse;
+    }
+    td, th {
+        padding: 4px 8px
+    }
+    tr {
+        border-bottom: solid 1px #d6d6d6;
+    }
+
+    th[data-name="addedDt" ] { min-width: 140px; }
+    th[data-name="infohash"] { min-width: 240px; }
+    th[data-name="name"    ] { min-width: 200px; }
+    th[data-name="size"    ] { min-width: 120px; }
+
+    td[data-name="infohash"] {
+        text-transform: lowercase;
+    }
+    td[data-name="size"] {
+        text-align: right;
+    }
+</style>
+
+</html>
