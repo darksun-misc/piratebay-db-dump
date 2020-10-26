@@ -1,4 +1,8 @@
-A CSV file with all torrent infohashes and names from thepiratebay.org on the moment of `2019-Sep-14`. You can lookup the content you need by the name and download the data by inserting the infohash into your favourite torrent client like [deluge](https://github.com/deluge-torrent/deluge) (you will need to [convert the hash](https://base64.guru/converter/decode/hex) from base64 to hex).
+A CSV file with all torrent infohashes and names from thepiratebay.org on the moment of `2019-Sep-14`. 
+
+You can conveniently browse this database on the Github Pages of this repo - https://klesun-misc.github.io/piratebay-db-dump/
+
+Alrernatively, you can manually lookup the content you need by the name and download the data by inserting the infohash into your favourite torrent client like [deluge](https://github.com/deluge-torrent/deluge) (you will need to [convert the hash](https://base64.guru/converter/decode/hex) from base64 to hex).
 
 Most editors die when I try to open this 200 MiB file, but [vim](https://github.com/vim/vim) eats it like a piece of cake.
 
