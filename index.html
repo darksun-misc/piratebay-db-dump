@@ -17,6 +17,15 @@
             </div>
             <div>
                 <label>
+                    <span>Hide Offensive: </span>
+                    <input name="hideOffensiveFlag" type="checkbox" checked="checked"/>
+                </label>
+                <!-- TODO: implement! -->
+<!--                <label>-->
+<!--                    <span>Regex: </span>-->
+<!--                    <input type="checkbox"/>-->
+<!--                </label>-->
+                <label>
                     <span>Limit Per Page: </span>
                     <input type="number" name="maxEntriesPerPage" min="1" max="50000" value="750"/>
                 </label>
@@ -96,6 +105,9 @@
         const end = nextBr === -1 ? csvText.length : nextBr;
 
         const line = csvText.slice(start, end);
+        if (line.trim() === '') {
+            return null;
+        }
 
         const parsed = Papa.parse(line, {delimiter: ';'});
         const valuesTuple = parsed.data[0];
@@ -133,6 +145,21 @@
         return new Response(stream);
     };
 
+    const offensiveRegexes = [
+        'fuck', 'fucks', 'fucked', 'fucker', 'cum', 'cums', 'nude', 'pussy', 'pussies', 'playboy', 'sex', 'XXX', 'anal', 'rape', 'raped', 'rapes',
+        'glory hole', 'gloryHole', 'porn', 'porns', 'uncensored', 'penis', 'penises', 'dick', 'dicks', 'cock', 'dildo', 'erotic',
+        /*'hentai', moshiboroshihujoshi titles would not offend anyone I think*/
+    ].flatMap(word => {
+        const capitalized = word.charAt(0).toUpperCase() + word.slice(1);
+        const anyCaseRegex = new RegExp('\\b' + escapeRegex(word) + '\\b', 'i');
+        const capitalizedRegex = new RegExp('([a-z0-9_]|\\b)' + escapeRegex(capitalized) + '([A-Z0-9_]|\\b)');
+        return [anyCaseRegex, capitalizedRegex];
+    });
+
+    const isOffensive = (torrentName) => {
+        return offensiveRegexes.some(regex => torrentName.match(regex));
+    };
+
     gui.statusPanel.textContent = 'Retrieving CSV (~200 MiB)...\n';
 
     const urlToCsvTextPromise = url => fetch(url)
@@ -164,12 +191,20 @@
 
         for (const index of indexesIter) {
             const valuesTuple = parseRowAt(csvText, index);
+            if (!valuesTuple) {
+                continue; // empty lines in CSV, trailing line break for example
+            }
             const [addedDt, infohashBase64, name, size] = valuesTuple;
             if (!name.toLowerCase().includes(nameSubstring.toLowerCase())) {
                 continue; // text search matched the hex string - ignore
             }
             if (index < colsBr) {
                 continue; // column headers matched the pattern
+            }
+            if (gui.searchForm['hideOffensiveFlag'].checked &&
+                isOffensive(name)
+            ) {
+                continue;
             }
 
             const infohash = base64ToHex(infohashBase64);
@@ -202,10 +237,6 @@
             evt.preventDefault();
             tbody.innerHTML = '';
             const nameSubstring = gui.searchForm['nameSubstring'].value;
-            if (nameSubstring.length < 3) {
-                alert('Search string is too short!');
-                return;
-            }
             const maxEntries = +gui.searchForm['maxEntriesPerPage'].value;
             let totalMatchesFound = 0;
             for (const csvText of fetchedCsvTexts) {
@@ -220,7 +251,8 @@
         let nameSubstring = gui.searchForm['nameSubstring'].value;
         const maxEntries = +gui.searchForm['maxEntriesPerPage'].value;
         // gosh, so much porn, make sure to never allow user to enter less than 3 characters long query
-        nameSubstring = nameSubstring.length >= 3 ? nameSubstring : '264';
+        // upd.: added bad words filtering, results seem to be more or less ok now
+        // nameSubstring = nameSubstring.length >= 3 ? nameSubstring : '264';
         updateTable(firstCsvText, tbody, maxEntries, nameSubstring);
     });
 </script>
@@ -252,6 +284,15 @@
     }
     td[data-name="size"] {
         text-align: right;
+    }
+    label {
+        margin: 8px;
+        padding: 4px;
+        border: solid #bdbdbd 1px;
+        background-color: #f9f9f9;
+    }
+    label:hover {
+        border-color: #529ae7;
     }
 </style>
 
