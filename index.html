@@ -151,12 +151,32 @@
         .then(rs => rs.text());
 
     const halfPromise = urlToCsvTextPromise('./piratebay_db_dump_2015_10_27T04_10_50_to_2019_09_14T22_09_31.csv');
+    const secondPromise = halfPromise.then(() => urlToCsvTextPromise('./piratebay_db_dump_2004_03_25T22_03_00_to_2015_10_27T04_10_22.csv'));
 
     const csvTextPromises = [
         urlToCsvTextPromise('./random_torrent_contributions.csv'),
         halfPromise,
-        // note, a lot of porn in the top of this one, better not put it first
-        halfPromise.then(() => urlToCsvTextPromise('./piratebay_db_dump_2004_03_25T22_03_00_to_2015_10_27T04_10_22.csv')),
+        secondPromise,
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_2.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_8.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_9.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_10.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_11.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_18.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_19.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_20.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_22.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_23.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_24.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_25.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_26.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_28.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_29.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_31.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_33.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_34.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_35.csv',)),
+        secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_37.csv',)),
     ];
 
     // could potentially allow searching without waiting for full data
@@ -314,7 +334,11 @@
     th[data-name="size"    ] { min-width: 120px; }
 
     td[data-name="infohash"] {
+        white-space: nowrap;
+    }
+    td[data-name="addedDt"] {
         text-transform: lowercase;
+        white-space: nowrap;
     }
     td[data-name="size"] {
         text-align: right;
