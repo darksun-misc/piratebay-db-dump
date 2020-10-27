@@ -9,7 +9,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/klesun-misc/piratebay-db-dump.git#master"
+    "url": "git+https://github.com/darksun-misc/piratebay-db-dump.git#master"
   },
   "author": "weebs",
   "license": "ISC"
