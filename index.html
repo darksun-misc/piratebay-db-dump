@@ -24,6 +24,7 @@
                 <label>
                     <span>Regex: </span>
                     <input name="useRegex" type="checkbox"/>
+                    <a href="https://medium.com/factory-mind/regex-tutorial-a-simple-cheatsheet-by-examples-649dc1c3f285#0090">ref</a>
                 </label>
                 <label>
                     <span>Limit Per Page: </span>
@@ -220,13 +221,13 @@
             document.body.classList.toggle('results-outdated', false);
         }
 
-        const regSrc = gui.searchForm['useRegex'].checked
-            ? nameSubstring
-            : nameSubstring
-                ? nameSubstring.split(' ')
+        const regSrc = nameSubstring
+            ? gui.searchForm['useRegex'].checked
+                ? nameSubstring
+                : nameSubstring.split(' ')
                     .map(escapeRegex)
                     .join('[\ \_\.]')
-                : '\\n';
+            : '\\n';
         let regex;
         try {
             regex = new RegExp(regSrc, 'ig');
@@ -268,6 +269,26 @@
         const params = prepareUpdateParams(firstCsvText, 0);
         updateTable(params);
     });
+
+    const searchInput = gui.searchForm['nameSubstring'];
+    const checkRegexSyntax = () => {
+        if (gui.searchForm['useRegex'].checked) {
+            try {
+                let regex = new RegExp(searchInput.value);
+                'some random text'.match(regex);
+                searchInput.setCustomValidity(''); // valid
+                searchInput.title = '';
+            } catch (exc) {
+                let error = exc + '';
+                searchInput.setCustomValidity(error); // invalid
+                searchInput.title = error;
+            }
+        } else {
+            searchInput.setCustomValidity('');
+        }
+    };
+    searchInput.addEventListener('input', checkRegexSyntax);
+    gui.searchForm['useRegex'].addEventListener('change', checkRegexSyntax);
 </script>
 
 </body>
@@ -309,6 +330,9 @@
     }
     body.first-search-submitted.results-outdated .update-results-btn {
         box-shadow: 0px 0px 8px 4px #1875ff;
+    }
+    [name="nameSubstring"]:invalid {
+        box-shadow: 0px 0px 2px 2px red;
     }
 </style>
 
