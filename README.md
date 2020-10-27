@@ -9,7 +9,7 @@ Most editors die when I try to open this 200 MiB file, but [vim](https://github.
 I added a package.json, so you should be able to add this repo as npm dependency with something like this in your app package.json:
 ```
 "dependencies": {
-  "gds-utils": "git+https://github.com/klesun-misc/piratebay-db-dump.git#master",
+  "gds-utils": "git+https://github.com/darksun-misc/piratebay-db-dump.git#master",
 }
 ```
 
