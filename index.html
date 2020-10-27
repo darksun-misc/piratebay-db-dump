@@ -154,9 +154,7 @@
     const fetchedCsvTexts = [];
     csvTextPromises.forEach(promise => promise.then(csvText => fetchedCsvTexts.push(csvText)));
 
-    const updateTable = (csvText, tbody, maxEntries) => {
-        const nameSubstring = gui.searchForm['nameSubstring'].value;
-
+    const updateTable = (csvText, tbody, maxEntries, nameSubstring) => {
         let matchesFound = 0;
 
         const colsBr = csvText.indexOf('\n');
@@ -203,10 +201,15 @@
         gui.searchForm.onsubmit = (evt) => {
             evt.preventDefault();
             tbody.innerHTML = '';
-            let maxEntries = +gui.searchForm['maxEntriesPerPage'].value;
+            const nameSubstring = gui.searchForm['nameSubstring'].value;
+            if (nameSubstring.length < 3) {
+                alert('Search string is too short!');
+                return;
+            }
+            const maxEntries = +gui.searchForm['maxEntriesPerPage'].value;
             let totalMatchesFound = 0;
             for (const csvText of fetchedCsvTexts) {
-                const {matchesFound} = updateTable(csvText, tbody, maxEntries - totalMatchesFound);
+                const {matchesFound} = updateTable(csvText, tbody, maxEntries - totalMatchesFound, nameSubstring);
                 totalMatchesFound += matchesFound;
                 if (totalMatchesFound >= maxEntries) {
                     break;
@@ -214,8 +217,11 @@
             }
             gui.statusPanel.textContent = 'Found ' + totalMatchesFound + ' matches\n';
         };
+        let nameSubstring = gui.searchForm['nameSubstring'].value;
         const maxEntries = +gui.searchForm['maxEntriesPerPage'].value;
-        updateTable(firstCsvText, tbody, maxEntries);
+        // gosh, so much porn, make sure to never allow user to enter less than 3 characters long query
+        nameSubstring = nameSubstring.length >= 3 ? nameSubstring : '264';
+        updateTable(firstCsvText, tbody, maxEntries, nameSubstring);
     });
 </script>
 
