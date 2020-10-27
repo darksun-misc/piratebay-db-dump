@@ -13,7 +13,7 @@
         <form onsubmit="alert('Please wait for torrent list to load!'); return false;">
             <div style="margin: 8px">
                 <input type="text" name="nameSubstring" placeholder="type part of file name here..."/>
-                <button>Search</button>
+                <button class="update-results-btn">Search</button>
             </div>
             <div>
                 <label>
@@ -75,28 +75,11 @@
     /** @param {RegExp} reg */
     const getRegexIterator = function*(superstring, reg) {
         let match;
-        while (match = reg.exec(superstring)) {
+        const statefulRegex = new RegExp(reg);
+        while (match = statefulRegex.exec(superstring)) {
             yield match.index;
         }
     }
-
-    /** @return {Generator<number>} */
-    const indexOfAnyCase = (superstring, substring) => {
-        if (!substring) {
-            throw new Error('Empty substring search not possible');
-        }
-        const regSrc = escapeRegex(substring);
-        const reg = new RegExp(regSrc, 'ig');
-        return getRegexIterator(superstring, reg);
-    };
-
-    /** @return {Generator<number>} */
-    const getLinesIterator = function*(superstring) {
-        const reg = new RegExp(/\n/g);
-        for (const index of getRegexIterator(superstring, reg)) {
-            yield index + 1;
-        }
-    };
 
     const parseRowAt = (csvText, index) => {
         const prevBr = csvText.lastIndexOf('\n', index);
@@ -179,23 +162,30 @@
     // to load... will need to integrate with ReadableStream more tightly then
 
     const fetchedCsvTexts = [];
-    csvTextPromises.forEach(promise => promise.then(csvText => fetchedCsvTexts.push(csvText)));
+    csvTextPromises.forEach(promise => promise.then(csvText => {
+        document.body.classList.toggle('results-outdated', true);
+        fetchedCsvTexts.push(csvText);
+    }));
 
     const updateTable = (csvText, tbody, maxEntries, nameSubstring) => {
         let matchesFound = 0;
 
         const colsBr = csvText.indexOf('\n');
-        const indexesIter = nameSubstring
-            ? indexOfAnyCase(csvText, nameSubstring)
-            : getLinesIterator(csvText);
+        const regSrc = nameSubstring
+            ? nameSubstring.split(' ')
+                .map(escapeRegex)
+                .join('[\ \_\.]')
+            : '\\n';
+        const regex = new RegExp(regSrc, 'ig');
+        const indexesIter = getRegexIterator(csvText, regex);
 
         for (const index of indexesIter) {
-            const valuesTuple = parseRowAt(csvText, index);
+            const valuesTuple = parseRowAt(csvText, index + 1);
             if (!valuesTuple) {
                 continue; // empty lines in CSV, trailing line break for example
             }
             const [addedDt, infohashBase64, name, size] = valuesTuple;
-            if (!name.toLowerCase().includes(nameSubstring.toLowerCase())) {
+            if (nameSubstring && !name.match(regex)) {
                 continue; // text search matched the hex string - ignore
             }
             if (index < colsBr) {
@@ -234,6 +224,9 @@
     halfPromise.then(async firstCsvText => {
         const tbody = gui.matchedEntriesList;
         gui.searchForm.onsubmit = (evt) => {
+            document.body.classList.toggle('first-search-submitted', true);
+            document.body.classList.toggle('results-outdated', false);
+
             evt.preventDefault();
             tbody.innerHTML = '';
             const nameSubstring = gui.searchForm['nameSubstring'].value;
@@ -253,6 +246,10 @@
         // gosh, so much porn, make sure to never allow user to enter less than 3 characters long query
         // upd.: added bad words filtering, results seem to be more or less ok now
         // nameSubstring = nameSubstring.length >= 3 ? nameSubstring : '264';
+        if (nameSubstring) {
+            document.body.classList.toggle('first-search-submitted', true);
+            document.body.classList.toggle('results-outdated', false);
+        }
         updateTable(firstCsvText, tbody, maxEntries, nameSubstring);
     });
 </script>
@@ -293,6 +290,9 @@
     }
     label:hover {
         border-color: #529ae7;
+    }
+    body.first-search-submitted.results-outdated .update-results-btn {
+        box-shadow: 0px 0px 8px 4px #1875ff;
     }
 </style>
 
