@@ -21,10 +21,10 @@
                     <input name="hideOffensiveFlag" type="checkbox" checked="checked"/>
                 </label>
                 <!-- TODO: implement! -->
-<!--                <label>-->
-<!--                    <span>Regex: </span>-->
-<!--                    <input type="checkbox"/>-->
-<!--                </label>-->
+                <label>
+                    <span>Regex: </span>
+                    <input name="useRegex" type="checkbox"/>
+                </label>
                 <label>
                     <span>Limit Per Page: </span>
                     <input type="number" name="maxEntriesPerPage" min="1" max="50000" value="750"/>
@@ -167,16 +167,10 @@
         fetchedCsvTexts.push(csvText);
     }));
 
-    const updateTable = (csvText, tbody, maxEntries, nameSubstring) => {
+    const updateTable = ({csvText, tbody, maxEntries, regex, namePred}) => {
         let matchesFound = 0;
 
         const colsBr = csvText.indexOf('\n');
-        const regSrc = nameSubstring
-            ? nameSubstring.split(' ')
-                .map(escapeRegex)
-                .join('[\ \_\.]')
-            : '\\n';
-        const regex = new RegExp(regSrc, 'ig');
         const indexesIter = getRegexIterator(csvText, regex);
 
         for (const index of indexesIter) {
@@ -184,16 +178,11 @@
             if (!valuesTuple) {
                 continue; // empty lines in CSV, trailing line break for example
             }
-            const [addedDt, infohashBase64, name, size] = valuesTuple;
-            if (nameSubstring && !name.match(regex)) {
-                continue; // text search matched the hex string - ignore
-            }
             if (index < colsBr) {
                 continue; // column headers matched the pattern
             }
-            if (gui.searchForm['hideOffensiveFlag'].checked &&
-                isOffensive(name)
-            ) {
+            const [addedDt, infohashBase64, name, size] = valuesTuple;
+            if (!namePred(name)) {
                 continue;
             }
 
@@ -221,36 +210,63 @@
         return {matchesFound};
     };
 
+    const prepareUpdateParams = (csvText, totalMatchesFound) => {
+        const tbody = gui.matchedEntriesList;
+        const nameSubstring = gui.searchForm['nameSubstring'].value;
+        const totalMaxEntries = +gui.searchForm['maxEntriesPerPage'].value;
+
+        if (nameSubstring) {
+            document.body.classList.toggle('first-search-submitted', true);
+            document.body.classList.toggle('results-outdated', false);
+        }
+
+        const regSrc = gui.searchForm['useRegex'].checked
+            ? nameSubstring
+            : nameSubstring
+                ? nameSubstring.split(' ')
+                    .map(escapeRegex)
+                    .join('[\ \_\.]')
+                : '\\n';
+        let regex;
+        try {
+            regex = new RegExp(regSrc, 'ig');
+        } catch (exc) {
+            alert('Invalid regex format - ' + exc);
+            throw exc;
+        }
+        const maxEntries = totalMaxEntries - totalMatchesFound;
+        const namePred = name => {
+            // ignore if text search matched the hex string
+            const matchedWrongValue = nameSubstring && !name.match(regex);
+            const hideAsOffensive = gui.searchForm['hideOffensiveFlag'].checked && isOffensive(name);
+            return !matchedWrongValue && !hideAsOffensive;
+        };
+        return {
+            csvText, tbody, maxEntries, regex, namePred,
+        };
+    };
+
     halfPromise.then(async firstCsvText => {
         const tbody = gui.matchedEntriesList;
         gui.searchForm.onsubmit = (evt) => {
-            document.body.classList.toggle('first-search-submitted', true);
-            document.body.classList.toggle('results-outdated', false);
-
             evt.preventDefault();
             tbody.innerHTML = '';
-            const nameSubstring = gui.searchForm['nameSubstring'].value;
-            const maxEntries = +gui.searchForm['maxEntriesPerPage'].value;
             let totalMatchesFound = 0;
             for (const csvText of fetchedCsvTexts) {
-                const {matchesFound} = updateTable(csvText, tbody, maxEntries - totalMatchesFound, nameSubstring);
+                const params = prepareUpdateParams(csvText, totalMatchesFound);
+                const {matchesFound} = updateTable(params);
                 totalMatchesFound += matchesFound;
-                if (totalMatchesFound >= maxEntries) {
+                if (matchesFound >= params.maxEntries) {
                     break;
                 }
             }
             gui.statusPanel.textContent = 'Found ' + totalMatchesFound + ' matches\n';
         };
-        let nameSubstring = gui.searchForm['nameSubstring'].value;
-        const maxEntries = +gui.searchForm['maxEntriesPerPage'].value;
         // gosh, so much porn, make sure to never allow user to enter less than 3 characters long query
         // upd.: added bad words filtering, results seem to be more or less ok now
         // nameSubstring = nameSubstring.length >= 3 ? nameSubstring : '264';
-        if (nameSubstring) {
-            document.body.classList.toggle('first-search-submitted', true);
-            document.body.classList.toggle('results-outdated', false);
-        }
-        updateTable(firstCsvText, tbody, maxEntries, nameSubstring);
+        const params = prepareUpdateParams(firstCsvText, 0);
+        updateTable(params);
     });
 </script>
 
