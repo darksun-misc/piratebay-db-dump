@@ -20,7 +20,10 @@
                     <span>Hide Offensive: </span>
                     <input name="hideOffensiveFlag" type="checkbox" checked="checked"/>
                 </label>
-                <!-- TODO: implement! -->
+                <label>
+                    <span>Hide Unresponsive: </span>
+                    <input name="hideUnresponsiveFlag" type="checkbox" checked="checked"/>
+                </label>
                 <label>
                     <span>Regex: </span>
                     <input name="useRegex" type="checkbox"/>
@@ -45,6 +48,7 @@
                 <th data-name="infohash">Infohash (Download Link)</th>
                 <th data-name="name">Name</th>
                 <th data-name="size">Size</th>
+                <th data-name="status">Status</th>
             </tr>
         </thead>
         <tbody id="matched-entries-list"></tbody>
@@ -130,7 +134,7 @@
     };
 
     const offensiveRegexes = [
-        'fuck', 'fucks', 'fucked', 'fucker', 'cum', 'cums', 'nude', 'pussy', 'pussies', 'playboy', 'sex', 'XXX', 'anal', 'rape', 'raped', 'rapes',
+        'fuck', 'fucks', 'fucked', 'fucker', 'cum', 'cums', 'nude', 'nudes', 'pussy', 'pussies', 'playboy', 'sex', 'XXX', 'anal', 'rape', 'raped', 'rapes',
         'glory hole', 'gloryHole', 'porn', 'porns', 'uncensored', 'penis', 'penises', 'dick', 'dicks', 'cock', 'dildo', 'erotic',
         /*'hentai', moshiboroshihujoshi titles would not offend anyone I think*/
     ].flatMap(word => {
@@ -207,20 +211,24 @@
                 continue;
             }
 
-            const infohash = base64ToHex(infohashBase64);
+            const infoHash = base64ToHex(infohashBase64);
+            const statusHolder = Dom('div', {class: 'status-holder', style: 'font-size: 12px'});
+
             const tr = Dom('tr', {}, [
                 Dom('td', {'data-name': 'addedDt'}, addedDt),
                 Dom('td', {'data-name': 'infohash'}, [
-                    Dom('a', {
-                        'href': 'magnet:?xt=urn:btih:' + infohash,
-                    }, [
+                    Dom('a', {'href': 'magnet:?xt=urn:btih:' + infoHash}, [
                         Dom('span', {}, '🧲 '),
-                        Dom('span', {}, infohash),
+                    ]),
+                    Dom('a', {'href': 'magnet:?xt=urn:btih:' + infoHash}, [
+                        Dom('span', {class: 'info-hash-text'}, infoHash),
                     ]),
                 ]),
                 // would be nice to highlight the part of text that was matched
                 Dom('td', {'data-name': 'name'}, name),
                 Dom('td', {'data-name': 'size'}, (size / 1024 / 1024).toFixed(3) + ' MiB'),
+                Dom('td', {'data-name': 'status'}, [statusHolder]),
+                // TODO: add here "Watch" button that redirects to the respective kunkka-torrent page
             ]);
             tbody.appendChild(tr);
             if (++matchesFound >= maxEntries) {
@@ -233,7 +241,7 @@
 
     const prepareUpdateParams = (csvText, totalMatchesFound) => {
         const tbody = gui.matchedEntriesList;
-        const nameSubstring = gui.searchForm['nameSubstring'].value;
+        const nameSubstring = gui.searchForm['nameSubstring'].value.trim();
         const totalMaxEntries = +gui.searchForm['maxEntriesPerPage'].value;
 
         if (nameSubstring) {
@@ -282,6 +290,36 @@
                 }
             }
             gui.statusPanel.textContent = 'Found ' + totalMatchesFound + ' matches\n';
+            [...tbody.children].slice(0, 200).forEach(tr => {
+                const infoHash = tr.querySelector('.info-hash-text').textContent;
+                const statusHolder = tr.querySelector('.status-holder');
+                fetch('https://kunkka-torrent.online/api/checkInfoHashMeta?infoHash=' + infoHash)
+                    .then(rs => rs.status === 200 ? rs.json() : Promise.reject(rs.statusText))
+                    .then(data => Dom('div', {}, [
+                        Dom('span', {}, 'File List:'),
+                        Dom('input', {type: 'checkbox', class: 'hide-following-flag'}),
+                        Dom('table', {}, [
+                            Dom('thead', {}, [
+                                Dom('tr', {}, [
+                                    Dom('th', {}, data.name),
+                                    Dom('th', {}, data.length),
+                                ]),
+                            ]),
+                            Dom('tbody', {}, data.files.map(f => Dom('tr', {}, [
+                                Dom('td', {}, f.path),
+                                Dom('td', {}, f.length),
+                            ]))),
+                        ]),
+                    ]))
+                    .catch(exc => {
+                        if ((exc + '').includes('Promise timed out')) {
+                            tr.classList.toggle('meta-info-timed-out');
+                        }
+                        return Dom('span', {}, 'Err: ' + exc);
+                    })
+                    .then(content => statusHolder.appendChild(content));
+
+            });
         };
         // gosh, so much porn, make sure to never allow user to enter less than 3 characters long query
         // upd.: added bad words filtering, results seem to be more or less ok now
@@ -309,6 +347,10 @@
     };
     searchInput.addEventListener('input', checkRegexSyntax);
     gui.searchForm['useRegex'].addEventListener('change', checkRegexSyntax);
+    gui.searchForm['hideUnresponsiveFlag'].onchange = () => {
+        document.body.classList.toggle('hide-unresponsive', gui.searchForm['hideUnresponsiveFlag'].checked);
+    };
+    gui.searchForm['hideUnresponsiveFlag'].onchange();
 </script>
 
 </body>
@@ -330,7 +372,7 @@
 
     th[data-name="addedDt" ] { min-width: 140px; }
     th[data-name="infohash"] { min-width: 240px; }
-    th[data-name="name"    ] { min-width: 200px; }
+    th[data-name="name"    ] { min-width: 140px; }
     th[data-name="size"    ] { min-width: 120px; }
 
     td[data-name="infohash"] {
@@ -342,6 +384,10 @@
     }
     td[data-name="size"] {
         text-align: right;
+    }
+    td[data-name="name"] {
+        max-width: 400px;
+        overflow-wrap: break-word;
     }
     label {
         margin: 8px;
@@ -357,6 +403,12 @@
     }
     [name="nameSubstring"]:invalid {
         box-shadow: 0px 0px 2px 2px red;
+    }
+    .hide-following-flag:not(:checked) + * {
+        display: none;
+    }
+    body.hide-unresponsive .meta-info-timed-out {
+        display: none;
     }
 </style>
 
