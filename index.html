@@ -290,9 +290,12 @@
                 }
             }
             gui.statusPanel.textContent = 'Found ' + totalMatchesFound + ' matches\n';
-            [...tbody.children].slice(0, 200).forEach(tr => {
+            [...tbody.children].slice(0, 100).forEach(tr => {
                 const infoHash = tr.querySelector('.info-hash-text').textContent;
                 const statusHolder = tr.querySelector('.status-holder');
+                // would probably make sense to first run with a small timeout, like 1 second - show most of the
+                // available torrents, and then run for the remainder with a greater timeout, like 10 seconds
+                // ... also making it in batches would solve dozens problems...
                 fetch('https://kunkka-torrent.online/api/checkInfoHashMeta?infoHash=' + infoHash)
                     .then(rs => rs.status === 200 ? rs.json() : Promise.reject(rs.statusText))
                     .then(data => Dom('div', {}, [
