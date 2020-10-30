@@ -1,0 +1,55 @@
+
+#status-panel {
+    white-space: pre;
+}
+
+table {
+    border-collapse: collapse;
+}
+td, th {
+    padding: 4px 8px
+}
+tr {
+    border-bottom: solid 1px #d6d6d6;
+}
+
+th[data-name="addedDt" ] { min-width: 140px; }
+th[data-name="infohash"] { min-width: 240px; }
+th[data-name="name"    ] { min-width: 140px; }
+th[data-name="size"    ] { min-width: 120px; }
+
+td[data-name="infohash"] {
+    white-space: nowrap;
+}
+td[data-name="addedDt"] {
+    text-transform: lowercase;
+    white-space: nowrap;
+}
+td[data-name="size"] {
+    text-align: right;
+}
+td[data-name="name"] {
+    max-width: 400px;
+    overflow-wrap: break-word;
+}
+label {
+    margin: 8px;
+    padding: 4px;
+    border: solid #bdbdbd 1px;
+    background-color: #f9f9f9;
+}
+label:hover {
+    border-color: #529ae7;
+}
+body.first-search-submitted.results-outdated .update-results-btn {
+    box-shadow: 0px 0px 8px 4px #1875ff;
+}
+[name="nameSubstring"]:invalid {
+    box-shadow: 0px 0px 2px 2px red;
+}
+.hide-following-flag:not(:checked) + * {
+    display: none;
+}
+body.hide-unresponsive .meta-info-timed-out {
+    display: none;
+}
