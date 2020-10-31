@@ -310,7 +310,12 @@ const addStatusInfo = (tr, statusInfo) => {
         gui.responsiveEntriesList.appendChild(tr);
     }
     const statusHolder = tr.querySelector('.status-holder');
+    const torrentName = tr.querySelector('[data-name="name"]').textContent;
 
+    const isBadCodec =
+        torrentName.match(/265/) ||
+        torrentName.match(/hevc/i) ||
+        torrentName.match(/mpeg-?4/i);
     statusHolder.innerHTML = '';
     const seconds = (statusInfo.msWaited / 1000).toFixed(2) + 's';
     if (statusInfo.status === 'META_AVAILABLE') {
@@ -332,7 +337,14 @@ const addStatusInfo = (tr, statusInfo) => {
                     Dom('td', {}, f.path),
                     Dom('td', {}, (f.length / 1024 / 1024).toFixed(3) + ' MiB'),
                     Dom('td', {}, [
-                        Dom('button', {onclick: () => playVideo(statusInfo.infoHash, f)}, 'Watch'),
+                        Dom('button', {
+                            onclick: () => playVideo(statusInfo.infoHash, f),
+                            ...(!isBadCodec ? {} : {
+                                disabled: 'disabled',
+                                style: 'cursor: help',
+                                title: 'Codec of this video file (h265/hevc/mpeg4) is a proprietary piece of shit, it can not be played in the browser - you have to download it to pc and play with vlc or choose a different torrent',
+                            }),
+                        }, 'Watch'),
                     ]),
                 ]))),
             ]),
