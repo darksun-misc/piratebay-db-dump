@@ -12,6 +12,9 @@ td, th {
 tr {
     border-bottom: solid 1px #d6d6d6;
 }
+tbody > tr:hover {
+    background-color: #e7f3ff;
+}
 
 th[data-name="addedDt" ] { min-width: 140px; }
 th[data-name="infohash"] { min-width: 240px; }
@@ -50,6 +53,17 @@ body.first-search-submitted.results-outdated .update-results-btn {
 .hide-following-flag:not(:checked) + * {
     display: none;
 }
-body.hide-unresponsive .meta-info-timed-out {
+
+#video-player-popdown {
+    display: flex;
+    justify-content: center;
+}
+#video-player-popdown:not(.video-selected) {
     display: none;
+}
+#selected-video-ffmpeg-info {
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #eaeaea;
 }

@@ -46,6 +46,10 @@ const gui = {
     searchForm: document.forms[0],
     matchedEntriesList: document.getElementById('matched-entries-list'),
     responsiveEntriesList: document.getElementById('responsive-entries-list'),
+    videoPlayerPopdown: document.getElementById('video-player-popdown'),
+    selectedVideoFfmpegInfo: document.getElementById('selected-video-ffmpeg-info'),
+    selectedVideoFileName: document.getElementById('selected-video-filename'),
+    selectedVideoSize: document.getElementById('selected-video-size'),
 };
 
 let bytesLoaded = 0;
@@ -273,6 +277,33 @@ const checkRegexSyntax = () => {
     }
 };
 
+let activeInfoHash = null;
+
+const playVideo = (infoHash, file) => {
+    activeInfoHash = infoHash;
+    const video = gui.videoPlayerPopdown.querySelector('video');
+    video.setAttribute('src', 'https://kunkka-torrent.online/torrent-stream/' + infoHash);
+    video.play();
+    gui.videoPlayerPopdown.classList.toggle('video-selected', true);
+    const url = 'https://kunkka-torrent.online/api/getFfmpegInfo?' + new URLSearchParams({infoHash});
+    gui.selectedVideoFfmpegInfo.textContent = 'It may take a minute or so before playback can be started';
+    fetch(url).then(rs => rs.json()).then(({stdout, stderr}) => {
+        if (activeInfoHash === infoHash) {
+            gui.selectedVideoFfmpegInfo.textContent = (stdout + '' + stderr)
+                .split('\n')
+                // remove verbose lines
+                .filter(l => !l.match(/^\s*major_brand/))
+                .filter(l => !l.match(/^\s*minor_version/))
+                .filter(l => !l.match(/^\s*compatible_brands/))
+                .filter(l => !l.match(/^\s*handler_name/))
+                .join('\n');
+        }
+    });
+    gui.selectedVideoFileName.textContent = file.path;
+    gui.selectedVideoSize.textContent = (file.length / 1024 / 1024).toFixed(3) + ' MiB';
+};
+
+/** @param {ItemStatus} statusInfo */
 const addStatusInfo = (tr, statusInfo) => {
     if (statusInfo.status !== 'TIMEOUT') {
         tr.remove();
@@ -283,6 +314,7 @@ const addStatusInfo = (tr, statusInfo) => {
     statusHolder.innerHTML = '';
     const seconds = (statusInfo.msWaited / 1000).toFixed(2) + 's';
     if (statusInfo.status === 'META_AVAILABLE') {
+        /** @type {TorrentInfo} */
         const data = statusInfo.metaInfo;
         const filesList = Dom('div', {}, [
             Dom('span', {}, seconds),
@@ -293,11 +325,15 @@ const addStatusInfo = (tr, statusInfo) => {
                     Dom('tr', {}, [
                         Dom('th', {}, data.name),
                         Dom('th', {}, data.length),
+                        Dom('th', {}, '*'),
                     ]),
                 ]),
                 Dom('tbody', {}, data.files.map(f => Dom('tr', {}, [
                     Dom('td', {}, f.path),
-                    Dom('td', {}, f.length),
+                    Dom('td', {}, (f.length / 1024 / 1024).toFixed(3) + ' MiB'),
+                    Dom('td', {}, [
+                        Dom('button', {onclick: () => playVideo(statusInfo.infoHash, f)}, 'Watch'),
+                    ]),
                 ]))),
             ]),
         ]);
@@ -339,10 +375,6 @@ const initSocket = (socketIo) => {
 const main = () => {
     searchInput.addEventListener('input', checkRegexSyntax);
     gui.searchForm['useRegex'].addEventListener('change', checkRegexSyntax);
-    gui.searchForm['hideUnresponsiveFlag'].onchange = () => {
-        document.body.classList.toggle('hide-unresponsive', gui.searchForm['hideUnresponsiveFlag'].checked);
-    };
-    gui.searchForm['hideUnresponsiveFlag'].onchange();
 
     window.onSocketIoLoaded = (SocketIo) => {
         const socketIo = SocketIo('https://kunkka-torrent.online', {transport: ['websocket']});
