@@ -311,15 +311,15 @@ const typeToStreamInfoMaker = {
 /** @param {FfprobeOutput} ffprobeOutput */
 const displayFfprobeOutput = (ffprobeOutput) => {
     const {format, streams} = ffprobeOutput;
-    const {format_name, probe_score, bit_rate} = format;
-    gui.selected_video_container_info.textContent = format_name + ' ' + (bit_rate / 1024 / 1024).toFixed(3) + ' MiB/s bitrate';
+    const {format_name, format_long_name, probe_score, bit_rate} = format;
+    gui.selected_video_container_info.textContent = format_long_name + ' - ' + format_name + ' ' + (bit_rate / 1024 / 1024).toFixed(3) + ' MiB/s bitrate';
     gui.selected_video_stream_list.innerHTML = '';
     for (const stream of streams) {
         const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
         const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
         const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest);
         const isBadCodec = ['h265', 'mpeg4', 'ac3'].includes(codec_name);
-        const isGoodCodec = ['h264', 'vp9', 'aac', 'vorbis', 'flac'].includes(codec_name);
+        const isGoodCodec = ['h264', 'vp9', 'aac', 'vorbis', 'flac', 'mp3'].includes(codec_name);
         const streamDom = Dom('div', {}, [
             Dom('span', {}, '#' + index),
             Dom('span', {
@@ -332,11 +332,13 @@ const displayFfprobeOutput = (ffprobeOutput) => {
         ]);
         gui.selected_video_stream_list.appendChild(streamDom);
     }
-    gui.selected_video_ffmpeg_info.textContent = '';
 };
 
 let activeInfoHash = null;
 let activeFilePath = null;
+
+let updateSwarmInfo = () => {};
+setInterval(() => updateSwarmInfo(), 10 * 1000);
 
 const playVideo = (infoHash, file) => {
     activeInfoHash = infoHash;
@@ -347,19 +349,31 @@ const playVideo = (infoHash, file) => {
     }));
     video.play();
     gui.video_player_popdown.classList.toggle('video-selected', true);
-    const url = 'https://kunkka-torrent.online/api/getFfmpegInfo?' + new URLSearchParams({
-        infoHash, filePath: file.path,
-    });
     gui.selected_video_ffmpeg_info.textContent = 'It may take a minute or so before playback can be started...';
     gui.selected_video_container_info.innerHTML = '';
     gui.selected_video_stream_list.innerHTML = '';
+    gui.selected_video_filename.textContent = file.path;
+    gui.selected_video_size.textContent = (file.length / 1024 / 1024).toFixed(3) + ' MiB';
+
+    const url = 'https://kunkka-torrent.online/api/getFfmpegInfo?' + new URLSearchParams({
+        infoHash, filePath: file.path,
+    });
     fetch(url).then(rs => rs.json()).then((ffprobeOutput) => {
         if (activeInfoHash === infoHash && activeFilePath === file.path) {
             displayFfprobeOutput(ffprobeOutput);
         }
     });
-    gui.selected_video_filename.textContent = file.path;
-    gui.selected_video_size.textContent = (file.length / 1024 / 1024).toFixed(3) + ' MiB';
+    updateSwarmInfo = async () => {
+        if (activeInfoHash !== infoHash || video.ended) {
+            updateSwarmInfo = () => {};
+        } else {
+            const url = 'https://kunkka-torrent.online/api/getSwarmInfo?' +
+                new URLSearchParams({infoHash});
+            fetch(url).then(rs => rs.json()).then(swarmSummary => {
+                gui.selected_video_ffmpeg_info.textContent = JSON.stringify(swarmSummary);
+            });
+        }
+    };
 };
 
 /** @param {ItemStatus} statusInfo */
