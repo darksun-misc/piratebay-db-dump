@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+    <meta charset="UTF-8">
+    <title>TPB DB Serverless Client</title>
+    <link rel="icon" href="assets/favicon_64.png"/>
+</head>
+<body style="height: 100%; margin: 0">
+<div style="display: flex; flex-direction: column; height: 100%">
+    <div id="video_player_popdown">
+        <div>
+            <video controls="controls" style="max-height: 400px"></video>
+        </div>
+        <div style="margin: 4px;">
+            <div style="text-align: right"><button onclick="document.getElementById('video_player_popdown').classList.toggle('video-selected', false)">X</button></div>
+            <div id="selected_video_filename">?</div>
+            <div id="selected_video_size">?</div>
+            <div id="selected_video_container_info"></div>
+            <div id="selected_video_stream_list"></div>
+            <div id="selected_video_ffmpeg_info"></div>
+        </div>
+    </div>
+    <div style="flex: 1; overflow-y:auto">
+        <div style="text-align: center">
+            <p>This is a simple page that provides you convenient search access to the static <a href="https://github.com/klesun-misc/piratebay-db-dump">200 MiB CSV</a> list of torrents referenced in this repo</p>
+
+            <div>
+                <form onsubmit="alert('Please wait for torrent list to load!'); return false;">
+                    <div style="margin: 8px">
+                        <input type="text" name="nameSubstring" placeholder="type part of file name here..."/>
+                        <button class="update-results-btn">Search</button>
+                    </div>
+                    <div>
+                        <label>
+                            <span>Hide Offensive: </span>
+                            <input name="hideOffensiveFlag" type="checkbox" checked="checked"/>
+                        </label>
+                        <label>
+                            <span>Regex: </span>
+                            <input name="useRegex" type="checkbox"/>
+                            <a href="https://medium.com/factory-mind/regex-tutorial-a-simple-cheatsheet-by-examples-649dc1c3f285#0090">ref</a>
+                        </label>
+                        <label>
+                            <span>Limit Per Page: </span>
+                            <input type="number" name="maxEntriesPerPage" min="1" max="50000" value="500"/>
+                        </label>
+                    </div>
+                </form>
+            </div>
+
+            <p id="status_panel">Please wait, loading libs...</p>
+        </div>
+
+        <div>
+            <table style="margin: 0 auto">
+                <thead>
+                    <tr class="filters-row" style="font-size: 8px;">
+                        <th>
+                            <div>
+                                <label>
+                                    <span>Min: </span>
+                                    <input style="font-size: 6px;" type="datetime-local"/>
+                                </label>
+                            </div>
+                            <div>
+                                <label>
+                                    <span>Max: </span>
+                                    <input style="font-size: 6px;" type="datetime-local"/>
+                                </label>
+                            </div>
+                        </th>
+                        <th></th>
+                        <th></th>
+                        <th>
+                            <div>
+                                <label>
+                                    <span>Min: (MiB) </span>
+                                    <input placeholder="0" style="font-size: 8px; width: 50px" type="number" step="0.001"/>
+                                </label>
+                            </div>
+                            <div>
+                                <label>
+                                    <span>Max: (MiB) </span>
+                                    <input placeholder="∞" style="font-size: 8px; width: 50px" type="number" step="0.001"/>
+                                </label>
+                            </div>
+                        </th>
+                        <th></th>
+                    </tr>
+                    <tr>
+                        <th data-name="addedDt">Added</th>
+                        <th data-name="infohash">Infohash (Download Link)</th>
+                        <th data-name="name">Name</th>
+                        <th data-name="size">Size</th>
+                        <th data-name="status">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="responsive_entries_list"></tbody>
+                <tbody id="matched_entries_list"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="index.css"/>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"
+        integrity="sha512-rKFvwjvE4liWPlFnvH4ZhRDfNZ9FOpdkD/BU5gAIA3VS3vOQrQ5BjKgbO3kxebKhHdHcNUHLqxQYSoxee9UwgA=="
+        crossorigin="anonymous" defer="defer"></script>
+
+<script type="module" src="index.js" defer="defer"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"
+        integrity="sha256-bQmrZe4yPnQrLTY+1gYylfNMBuGfnT/HKsCGX+9Xuqo="
+        crossorigin="anonymous" defer="defer"></script>
+<script type="module" defer="defer">
+    window.onSocketIoLoaded(window.io);
+</script>
+
+</body>
+
+</html>

@@ -1,5 +1,5 @@
 
-#status-panel {
+#status_panel {
     white-space: pre;
 }
 
@@ -55,14 +55,14 @@ body.first-search-submitted.results-outdated .update-results-btn {
     display: none;
 }
 
-#video-player-popdown {
+#video_player_popdown {
     display: flex;
     justify-content: center;
 }
-#video-player-popdown:not(.video-selected) {
+#video_player_popdown:not(.video-selected) {
     display: none;
 }
-#selected-video-ffmpeg-info {
+#selected_video_ffmpeg_info {
     white-space: pre-wrap;
     max-height: 300px;
     overflow-y: auto;

@@ -1,4 +1,4 @@
-import {Dom} from "./web_client/Dom.js";
+import {Dom} from "./Dom.js";
 
 const Papa = window.Papa;
 
@@ -42,16 +42,16 @@ const parseRowAt = (csvText, index) => {
 };
 
 const gui = {
-    statusPanel: document.getElementById('status-panel'),
+    status_panel: document.getElementById('status_panel'),
     searchForm: document.forms[0],
-    matchedEntriesList: document.getElementById('matched-entries-list'),
-    responsiveEntriesList: document.getElementById('responsive-entries-list'),
-    videoPlayerPopdown: document.getElementById('video-player-popdown'),
+    matched_entries_list: document.getElementById('matched_entries_list'),
+    responsive_entries_list: document.getElementById('responsive_entries_list'),
+    video_player_popdown: document.getElementById('video_player_popdown'),
     selected_video_container_info: document.getElementById('selected_video_container_info'),
     selected_video_stream_list: document.getElementById('selected_video_stream_list'),
-    selectedVideoFfmpegInfo: document.getElementById('selected-video-ffmpeg-info'),
-    selectedVideoFileName: document.getElementById('selected-video-filename'),
-    selectedVideoSize: document.getElementById('selected-video-size'),
+    selected_video_ffmpeg_info: document.getElementById('selected_video_ffmpeg_info'),
+    selected_video_filename: document.getElementById('selected_video_filename'),
+    selected_video_size: document.getElementById('selected_video_size'),
 };
 
 let bytesLoaded = 0;
@@ -66,7 +66,7 @@ const trackBytesLoaded = rs => {
                         controller.close();
                     } else {
                         bytesLoaded += value.length;
-                        gui.statusPanel.textContent = 'Bytes Loaded: ' + (bytesLoaded / 1024 / 1024).toFixed(3) + ' MiB / ~200 MiB in ' + (Date.now() - csvFetchStartMs) + ' ms';
+                        gui.status_panel.textContent = 'Bytes Loaded: ' + (bytesLoaded / 1024 / 1024).toFixed(3) + ' MiB / ~200 MiB in ' + (Date.now() - csvFetchStartMs) + ' ms';
                         controller.enqueue(value);
                         return pump();
                     }
@@ -93,39 +93,39 @@ const isOffensive = (torrentName) => {
     return OFFENSIVE_REGEXES.some(regex => torrentName.match(regex));
 };
 
-gui.statusPanel.textContent = 'Retrieving CSV (~200 MiB)...\n';
+gui.status_panel.textContent = 'Retrieving CSV (~200 MiB)...\n';
 
 const urlToCsvTextPromise = url => fetch(url)
     .then(trackBytesLoaded)
     .then(rs => rs.text());
 
-const halfPromise = urlToCsvTextPromise('./piratebay_db_dump_2015_10_27T04_10_50_to_2019_09_14T22_09_31.csv');
-const secondPromise = halfPromise.then(() => urlToCsvTextPromise('./piratebay_db_dump_2004_03_25T22_03_00_to_2015_10_27T04_10_22.csv'));
+const halfPromise = urlToCsvTextPromise('./../piratebay_db_dump_2015_10_27T04_10_50_to_2019_09_14T22_09_31.csv');
+const secondPromise = halfPromise.then(() => urlToCsvTextPromise('./../piratebay_db_dump_2004_03_25T22_03_00_to_2015_10_27T04_10_22.csv'));
 
 const csvTextPromises = [
-    urlToCsvTextPromise('./random_torrent_contributions.csv'),
+    urlToCsvTextPromise('./../random_torrent_contributions.csv'),
     halfPromise,
     secondPromise,
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_2.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_8.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_9.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_10.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_11.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_18.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_19.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_20.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_22.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_23.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_24.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_25.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_26.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_28.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_29.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_31.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_33.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_34.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_35.csv',)),
-    secondPromise.then(() => urlToCsvTextPromise('./rutracker_2020_09_27/category_37.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_2.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_8.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_9.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_10.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_11.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_18.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_19.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_20.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_22.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_23.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_24.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_25.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_26.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_28.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_29.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_31.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_33.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_34.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_35.csv',)),
+    secondPromise.then(() => urlToCsvTextPromise('./../rutracker_2020_09_27/category_37.csv',)),
 ];
 
 // could potentially allow searching without waiting for full data
@@ -202,7 +202,7 @@ const updateTable = ({csvText, tbody, maxEntries, regex, namePred}) => {
 };
 
 const prepareUpdateParams = (csvText, totalMatchesFound) => {
-    const tbody = gui.matchedEntriesList;
+    const tbody = gui.matched_entries_list;
     const nameSubstring = gui.searchForm['nameSubstring'].value.trim();
     const totalMaxEntries = +gui.searchForm['maxEntriesPerPage'].value;
 
@@ -238,11 +238,11 @@ const prepareUpdateParams = (csvText, totalMatchesFound) => {
 };
 
 halfPromise.then(async firstCsvText => {
-    const tbody = gui.matchedEntriesList;
+    const tbody = gui.matched_entries_list;
     gui.searchForm.onsubmit = (evt) => {
         evt.preventDefault();
         tbody.innerHTML = '';
-        gui.responsiveEntriesList.innerHTML = '';
+        gui.responsive_entries_list.innerHTML = '';
         let totalMatchesFound = 0;
         for (const csvText of fetchedCsvTexts) {
             const params = prepareUpdateParams(csvText, totalMatchesFound);
@@ -255,7 +255,7 @@ halfPromise.then(async firstCsvText => {
                 break;
             }
         }
-        gui.statusPanel.textContent = 'Found ' + totalMatchesFound + ' matches\n';
+        gui.status_panel.textContent = 'Found ' + totalMatchesFound + ' matches\n';
     };
     // gosh, so much porn, make sure to never allow user to enter less than 3 characters long query
     // upd.: added bad words filtering, results seem to be more or less ok now
@@ -319,7 +319,7 @@ const displayFfprobeOutput = (ffprobeOutput) => {
         const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
         const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest);
         const isBadCodec = ['h265', 'mpeg4', 'ac3'].includes(codec_name);
-        const isGoodCodec = ['h264', 'vp9', 'aac', 'vorbis'].includes(codec_name);
+        const isGoodCodec = ['h264', 'vp9', 'aac', 'vorbis', 'flac'].includes(codec_name);
         const streamDom = Dom('div', {}, [
             Dom('span', {}, '#' + index),
             Dom('span', {
@@ -332,7 +332,7 @@ const displayFfprobeOutput = (ffprobeOutput) => {
         ]);
         gui.selected_video_stream_list.appendChild(streamDom);
     }
-    gui.selectedVideoFfmpegInfo.textContent = '';
+    gui.selected_video_ffmpeg_info.textContent = '';
 };
 
 let activeInfoHash = null;
@@ -341,16 +341,16 @@ let activeFilePath = null;
 const playVideo = (infoHash, file) => {
     activeInfoHash = infoHash;
     activeFilePath = file.path;
-    const video = gui.videoPlayerPopdown.querySelector('video');
+    const video = gui.video_player_popdown.querySelector('video');
     video.setAttribute('src', 'https://kunkka-torrent.online/torrent-stream?' + new URLSearchParams({
         infoHash, filePath: file.path,
     }));
     video.play();
-    gui.videoPlayerPopdown.classList.toggle('video-selected', true);
+    gui.video_player_popdown.classList.toggle('video-selected', true);
     const url = 'https://kunkka-torrent.online/api/getFfmpegInfo?' + new URLSearchParams({
         infoHash, filePath: file.path,
     });
-    gui.selectedVideoFfmpegInfo.textContent = 'It may take a minute or so before playback can be started...';
+    gui.selected_video_ffmpeg_info.textContent = 'It may take a minute or so before playback can be started...';
     gui.selected_video_container_info.innerHTML = '';
     gui.selected_video_stream_list.innerHTML = '';
     fetch(url).then(rs => rs.json()).then((ffprobeOutput) => {
@@ -358,15 +358,15 @@ const playVideo = (infoHash, file) => {
             displayFfprobeOutput(ffprobeOutput);
         }
     });
-    gui.selectedVideoFileName.textContent = file.path;
-    gui.selectedVideoSize.textContent = (file.length / 1024 / 1024).toFixed(3) + ' MiB';
+    gui.selected_video_filename.textContent = file.path;
+    gui.selected_video_size.textContent = (file.length / 1024 / 1024).toFixed(3) + ' MiB';
 };
 
 /** @param {ItemStatus} statusInfo */
 const addStatusInfo = (tr, statusInfo) => {
     if (statusInfo.status !== 'TIMEOUT') {
         tr.remove();
-        gui.responsiveEntriesList.appendChild(tr);
+        gui.responsive_entries_list.appendChild(tr);
     }
     const statusHolder = tr.querySelector('.status-holder');
     const torrentName = tr.querySelector('[data-name="name"]').textContent;
