@@ -392,7 +392,9 @@ const addStatusInfo = (tr, statusInfo) => {
                         Dom('th', {}, '*'),
                     ]),
                 ]),
-                Dom('tbody', {}, data.files.map(f => Dom('tr', {}, [
+                Dom('tbody', {}, [...data.files].sort((a,b) => {
+                    return a.path > b.path ? 1 : a.path < b.path ? -1 : 0;
+                }).map(f => Dom('tr', {}, [
                     Dom('td', {}, f.path),
                     Dom('td', {}, (f.length / 1024 / 1024).toFixed(3) + ' MiB'),
                     Dom('td', {}, [
