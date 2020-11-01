@@ -155,40 +155,43 @@ const findRecordsByRegex = function*({csvText, regex}) {
     }
 };
 
+const makeTorrentTr = (record) => {
+    const {addedDt, infoHash, name, size} = record;
+    const statusHolder = Dom('div', {
+        class: 'status-holder',
+        style: 'font-size: 12px',
+    });
+
+    return Dom('tr', {
+        class: 'torrent-item-row',
+        'data-info-hash': infoHash,
+    }, [
+        Dom('td', {'data-name': 'addedDt'}, addedDt),
+        Dom('td', {'data-name': 'infohash'}, [
+            Dom('a', {'href': 'magnet:?xt=urn:btih:' + infoHash}, [
+                Dom('span', {}, '🧲 '),
+            ]),
+            Dom('a', {'href': 'magnet:?xt=urn:btih:' + infoHash}, [
+                Dom('span', {class: 'info-hash-text'}, infoHash),
+            ]),
+        ]),
+        // would be nice to highlight the part of text that was matched
+        Dom('td', {'data-name': 'name'}, name.split(/ \/ /).join(' /\n ')),
+        Dom('td', {'data-name': 'size'}, (size / 1024 / 1024).toFixed(3) + ' MiB'),
+        Dom('td', {'data-name': 'status'}, [statusHolder]),
+    ]);
+};
+
 const updateTable = ({csvText, tbody, maxEntries, regex, namePred}) => {
     const matchedRecords = [];
 
     for (const record of findRecordsByRegex({csvText, regex})) {
-        const {addedDt, infoHash, name, size} = record;
-        if (!namePred(name)) {
+        if (!namePred(record.name)) {
             continue;
         }
         matchedRecords.push(record);
 
-        const statusHolder = Dom('div', {
-            class: 'status-holder',
-            style: 'font-size: 12px',
-        });
-
-        const tr = Dom('tr', {
-            class: 'torrent-item-row',
-            'data-info-hash': infoHash,
-        }, [
-            Dom('td', {'data-name': 'addedDt'}, addedDt),
-            Dom('td', {'data-name': 'infohash'}, [
-                Dom('a', {'href': 'magnet:?xt=urn:btih:' + infoHash}, [
-                    Dom('span', {}, '🧲 '),
-                ]),
-                Dom('a', {'href': 'magnet:?xt=urn:btih:' + infoHash}, [
-                    Dom('span', {class: 'info-hash-text'}, infoHash),
-                ]),
-            ]),
-            // would be nice to highlight the part of text that was matched
-            Dom('td', {'data-name': 'name'}, name),
-            Dom('td', {'data-name': 'size'}, (size / 1024 / 1024).toFixed(3) + ' MiB'),
-            Dom('td', {'data-name': 'status'}, [statusHolder]),
-            // TODO: add here "Watch" button that redirects to the respective kunkka-torrent page
-        ]);
+        const tr = makeTorrentTr(record);
         tbody.appendChild(tr);
         if (matchedRecords.length >= maxEntries) {
             break;
@@ -316,7 +319,7 @@ const displayFfprobeOutput = (ffprobeOutput) => {
         const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
         const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest);
         const isBadCodec = ['h265', 'mpeg4', 'ac3'].includes(codec_name);
-        const isGoodCodec = ['h264', 'vp9', 'aac'].includes(codec_name);
+        const isGoodCodec = ['h264', 'vp9', 'aac', 'vorbis'].includes(codec_name);
         const streamDom = Dom('div', {}, [
             Dom('span', {}, '#' + index),
             Dom('span', {
@@ -347,7 +350,7 @@ const playVideo = (infoHash, file) => {
     const url = 'https://kunkka-torrent.online/api/getFfmpegInfo?' + new URLSearchParams({
         infoHash, filePath: file.path,
     });
-    gui.selectedVideoFfmpegInfo.textContent = 'It may take a minute or so before playback can be started';
+    gui.selectedVideoFfmpegInfo.textContent = 'It may take a minute or so before playback can be started...';
     gui.selected_video_container_info.innerHTML = '';
     gui.selected_video_stream_list.innerHTML = '';
     fetch(url).then(rs => rs.json()).then((ffprobeOutput) => {

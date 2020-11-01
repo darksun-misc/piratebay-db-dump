@@ -32,8 +32,9 @@ td[data-name="size"] {
     text-align: right;
 }
 td[data-name="name"] {
-    max-width: 400px;
+    max-width: 500px;
     overflow-wrap: break-word;
+    white-space: pre-wrap;
 }
 label {
     margin: 8px;
