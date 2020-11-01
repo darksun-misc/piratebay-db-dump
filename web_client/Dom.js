@@ -1,7 +1,7 @@
 /**
  * @param {string} tagName = 'div' || 'span' || 'li'
  * @param {Record<string, string|number|function>} attributes
- * @param {HTMLElement[]|string} children
+ * @param {HTMLElement[]|string|number} children
  * @return {HTMLElement}
  */
 export const Dom = (tagName, attributes = {}, children = []) => {

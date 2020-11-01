@@ -47,6 +47,8 @@ const gui = {
     matchedEntriesList: document.getElementById('matched-entries-list'),
     responsiveEntriesList: document.getElementById('responsive-entries-list'),
     videoPlayerPopdown: document.getElementById('video-player-popdown'),
+    selected_video_container_info: document.getElementById('selected_video_container_info'),
+    selected_video_stream_list: document.getElementById('selected_video_stream_list'),
     selectedVideoFfmpegInfo: document.getElementById('selected-video-ffmpeg-info'),
     selectedVideoFileName: document.getElementById('selected-video-filename'),
     selectedVideoSize: document.getElementById('selected-video-size'),
@@ -277,26 +279,80 @@ const checkRegexSyntax = () => {
     }
 };
 
+const typeToStreamInfoMaker = {
+    'video': (stream) => {
+        const {width, height, display_aspect_ratio, avg_frame_rate, bits_per_raw_sample, pix_fmt, ...rest} = stream;
+        return Dom('span', {}, [
+            Dom('span', {}, display_aspect_ratio + ' ' + width + 'x' + height),
+            Dom('span', {}, avg_frame_rate.split('/')[0] / 1000),
+            Dom('span', {}, 'Colors: ' + pix_fmt),
+        ]);
+    },
+    'audio': (stream) => {
+        const {sample_fmt, sample_rate, channels, ...rest} = stream;
+        return Dom('span', {}, [
+            Dom('span', {}, (sample_rate / 1000) + ' kHz'),
+            Dom('span', {}, channels + ' ch'),
+        ]);
+    },
+    'subtitle': (stream) => {
+        const {language, title, NUMBER_OF_FRAMES} = stream.tags || {};
+        return Dom('span', {}, [
+            Dom('span', {}, title || ''),
+            Dom('span', {}, language),
+            Dom('span', {}, NUMBER_OF_FRAMES + ' frames'),
+        ]);
+    },
+};
+
+/** @param {FfprobeOutput} ffprobeOutput */
+const displayFfprobeOutput = (ffprobeOutput) => {
+    const {format, streams} = ffprobeOutput;
+    const {format_name, probe_score, bit_rate} = format;
+    gui.selected_video_container_info.textContent = format_name + ' ' + (bit_rate / 1024 / 1024).toFixed(3) + ' MiB/s bitrate';
+    gui.selected_video_stream_list.innerHTML = '';
+    for (const stream of streams) {
+        const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
+        const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
+        const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest);
+        const isBadCodec = ['h265', 'mpeg4', 'ac3'].includes(codec_name);
+        const isGoodCodec = ['h264', 'vp9', 'aac'].includes(codec_name);
+        const streamDom = Dom('div', {}, [
+            Dom('span', {}, '#' + index),
+            Dom('span', {
+                ...(isBadCodec ? {class: 'bad-codec'} : {}),
+                ...(isGoodCodec ? {class: 'good-codec'} : {}),
+            }, codec_name),
+            Dom('span', {}, codec_type),
+            Dom('span', {}, profile),
+            Dom('span', {}, typeInfo),
+        ]);
+        gui.selected_video_stream_list.appendChild(streamDom);
+    }
+    gui.selectedVideoFfmpegInfo.textContent = '';
+};
+
 let activeInfoHash = null;
+let activeFilePath = null;
 
 const playVideo = (infoHash, file) => {
     activeInfoHash = infoHash;
+    activeFilePath = file.path;
     const video = gui.videoPlayerPopdown.querySelector('video');
-    video.setAttribute('src', 'https://kunkka-torrent.online/torrent-stream/' + infoHash);
+    video.setAttribute('src', 'https://kunkka-torrent.online/torrent-stream?' + new URLSearchParams({
+        infoHash, filePath: file.path,
+    }));
     video.play();
     gui.videoPlayerPopdown.classList.toggle('video-selected', true);
-    const url = 'https://kunkka-torrent.online/api/getFfmpegInfo?' + new URLSearchParams({infoHash});
+    const url = 'https://kunkka-torrent.online/api/getFfmpegInfo?' + new URLSearchParams({
+        infoHash, filePath: file.path,
+    });
     gui.selectedVideoFfmpegInfo.textContent = 'It may take a minute or so before playback can be started';
-    fetch(url).then(rs => rs.json()).then(({stdout, stderr}) => {
-        if (activeInfoHash === infoHash) {
-            gui.selectedVideoFfmpegInfo.textContent = (stdout + '' + stderr)
-                .split('\n')
-                // remove verbose lines
-                .filter(l => !l.match(/^\s*major_brand/))
-                .filter(l => !l.match(/^\s*minor_version/))
-                .filter(l => !l.match(/^\s*compatible_brands/))
-                .filter(l => !l.match(/^\s*handler_name/))
-                .join('\n');
+    gui.selected_video_container_info.innerHTML = '';
+    gui.selected_video_stream_list.innerHTML = '';
+    fetch(url).then(rs => rs.json()).then((ffprobeOutput) => {
+        if (activeInfoHash === infoHash && activeFilePath === file.path) {
+            displayFfprobeOutput(ffprobeOutput);
         }
     });
     gui.selectedVideoFileName.textContent = file.path;
@@ -342,7 +398,7 @@ const addStatusInfo = (tr, statusInfo) => {
                             ...(!isBadCodec ? {} : {
                                 disabled: 'disabled',
                                 style: 'cursor: help',
-                                title: 'Codec of this video file (h265/hevc/mpeg4) is a proprietary piece of shit, it can not be played in the browser - you have to download it to pc and play with vlc or choose a different torrent',
+                                title: 'Codec of this video file (h265/hevc/mpeg4) is a proprietary piece of shit, it can not be played in the browser - you can only download it to pc and play with vlc or choose a different torrent',
                             }),
                         }, 'Watch'),
                     ]),
@@ -351,7 +407,10 @@ const addStatusInfo = (tr, statusInfo) => {
         ]);
         statusHolder.appendChild(filesList);
     } else if (statusInfo.status === 'TIMEOUT') {
-        const errorBlock = Dom('span', {}, seconds + ' no response');
+        const errorBlock = Dom('span', {}, [
+            Dom('span', {}, seconds + ' no response '),
+            Dom('button', {onclick: () => scanInfoHashStatus([statusInfo.infoHash])}, 'Retry'),
+        ]);
         statusHolder.appendChild(errorBlock);
     } else {
         const errorBlock = Dom('span', {}, JSON.stringify(statusInfo));

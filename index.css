@@ -67,3 +67,15 @@ body.first-search-submitted.results-outdated .update-results-btn {
     overflow-y: auto;
     background-color: #eaeaea;
 }
+
+#selected_video_stream_list span,
+#selected_video_stream_list span {
+    margin: 0px 4px;
+}
+
+#selected_video_stream_list span.bad-codec {
+    color: red;
+}
+#selected_video_stream_list span.good-codec {
+    color: green;
+}

@@ -15,6 +15,8 @@
             <div style="text-align: right"><button onclick="document.getElementById('video-player-popdown').classList.toggle('video-selected', false)">X</button></div>
             <div id="selected-video-filename">?</div>
             <div id="selected-video-size">?</div>
+            <div id="selected_video_container_info"></div>
+            <div id="selected_video_stream_list"></div>
             <div id="selected-video-ffmpeg-info"></div>
         </div>
     </div>
@@ -52,6 +54,39 @@
         <div>
             <table style="margin: 0 auto">
                 <thead>
+                    <tr class="filters-row" style="font-size: 8px;">
+                        <th>
+                            <div>
+                                <label>
+                                    <span>Min: </span>
+                                    <input style="font-size: 6px;" type="datetime-local"/>
+                                </label>
+                            </div>
+                            <div>
+                                <label>
+                                    <span>Max: </span>
+                                    <input style="font-size: 6px;" type="datetime-local"/>
+                                </label>
+                            </div>
+                        </th>
+                        <th></th>
+                        <th></th>
+                        <th>
+                            <div>
+                                <label>
+                                    <span>Min: (MiB) </span>
+                                    <input placeholder="0" style="font-size: 8px; width: 50px" type="number" step="0.001"/>
+                                </label>
+                            </div>
+                            <div>
+                                <label>
+                                    <span>Max: (MiB) </span>
+                                    <input placeholder="∞" style="font-size: 8px; width: 50px" type="number" step="0.001"/>
+                                </label>
+                            </div>
+                        </th>
+                        <th></th>
+                    </tr>
                     <tr>
                         <th data-name="addedDt">Added</th>
                         <th data-name="infohash">Infohash (Download Link)</th>
