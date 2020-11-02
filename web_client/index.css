@@ -80,3 +80,7 @@ body.first-search-submitted.results-outdated .update-results-btn {
 #selected_video_stream_list span.good-codec {
     color: green;
 }
+video::cue {
+    background-color: transparent;
+    text-shadow: #000 2px 2px 2px;
+}
