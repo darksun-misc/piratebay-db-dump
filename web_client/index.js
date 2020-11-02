@@ -308,45 +308,68 @@ const typeToStreamInfoMaker = {
     },
 };
 
-/** @param {FfprobeOutput} ffprobeOutput */
-const displayFfprobeOutput = (ffprobeOutput) => {
+/**
+ * @param {FfprobeOutput} ffprobeOutput
+ * @param {HTMLVideoElement} video
+ */
+const displayFfprobeOutput = (ffprobeOutput, video) => {
     const {format, streams} = ffprobeOutput;
     const {format_name, format_long_name, probe_score, bit_rate} = format;
     gui.selected_video_container_info.textContent = format_long_name + ' - ' + format_name + ' ' + (bit_rate / 1024 / 1024).toFixed(3) + ' MiB/s bitrate';
     gui.selected_video_stream_list.innerHTML = '';
+    let subsIndex = 0;
     for (const stream of streams) {
         const {index, codec_name, codec_long_name, profile, codec_type, ...rest} = stream;
         const typedInfoMaker = typeToStreamInfoMaker[codec_type] || null;
         const typeInfo = typedInfoMaker ? [typedInfoMaker(rest)] : JSON.stringify(rest);
         const isBadCodec = ['h265', 'mpeg4', 'ac3'].includes(codec_name);
         const isGoodCodec = ['h264', 'vp9', 'aac', 'vorbis', 'flac', 'mp3'].includes(codec_name);
-        const streamDom = Dom('div', {}, [
-            Dom('span', {}, '#' + index),
-            Dom('span', {
-                ...(isBadCodec ? {class: 'bad-codec'} : {}),
-                ...(isGoodCodec ? {class: 'good-codec'} : {}),
-            }, codec_name),
-            Dom('span', {}, codec_type),
-            Dom('span', {}, profile),
-            Dom('span', {}, typeInfo),
-        ]);
-        gui.selected_video_stream_list.appendChild(streamDom);
+        gui.selected_video_stream_list.appendChild(
+            Dom('div', {}, [
+                Dom('span', {}, '#' + index),
+                Dom('span', {
+                    ...(isBadCodec ? {class: 'bad-codec'} : {}),
+                    ...(isGoodCodec ? {class: 'good-codec'} : {}),
+                }, codec_name),
+                Dom('span', {}, codec_type),
+                Dom('span', {}, profile),
+                Dom('span', {}, typeInfo),
+            ])
+        );
+
+        if (codec_type === 'subtitle') {
+            const srclang = (stream.tags || {}).language;
+            const src = 'https://kunkka-torrent.online/torrent-stream-subs?' + new URLSearchParams({
+                infoHash: video.getAttribute('data-info-hash'),
+                filePath: video.getAttribute('data-file-path'),
+                subsIndex: subsIndex,
+            });
+            video.appendChild(
+                Dom('track', {
+                    src: src,
+                    ...(subsIndex === 0 ? {default: 'default'} : {}),
+                    kind: 'subtitles',
+                    label: srclang + ' ' + ((stream.tags || {}).title || ''),
+                    srclang: srclang,
+                }, [])
+            );
+            ++subsIndex;
+        }
     }
 };
-
-let activeInfoHash = null;
-let activeFilePath = null;
 
 let updateSwarmInfo = () => {};
 setInterval(() => updateSwarmInfo(), 10 * 1000);
 
 const playVideo = (infoHash, file) => {
-    activeInfoHash = infoHash;
-    activeFilePath = file.path;
     const video = gui.video_player_popdown.querySelector('video');
+    video.setAttribute('data-info-hash', infoHash);
+    video.setAttribute('data-file-path', file.path);
     video.setAttribute('src', 'https://kunkka-torrent.online/torrent-stream?' + new URLSearchParams({
-        infoHash, filePath: file.path,
+        infoHash: video.getAttribute('data-info-hash'),
+        filePath: video.getAttribute('data-file-path'),
     }));
+    video.innerHTML = '';
     video.play();
     gui.video_player_popdown.classList.toggle('video-selected', true);
     gui.selected_video_ffmpeg_info.textContent = 'It may take a minute or so before playback can be started...';
@@ -356,15 +379,18 @@ const playVideo = (infoHash, file) => {
     gui.selected_video_size.textContent = (file.length / 1024 / 1024).toFixed(3) + ' MiB';
 
     const url = 'https://kunkka-torrent.online/api/getFfmpegInfo?' + new URLSearchParams({
-        infoHash, filePath: file.path,
+        infoHash: video.getAttribute('data-info-hash'),
+        filePath: video.getAttribute('data-file-path'),
     });
     fetch(url).then(rs => rs.json()).then((ffprobeOutput) => {
-        if (activeInfoHash === infoHash && activeFilePath === file.path) {
-            displayFfprobeOutput(ffprobeOutput);
+        if (video.getAttribute('data-info-hash') === infoHash &&
+            video.getAttribute('data-file-path') === file.path
+        ) {
+            displayFfprobeOutput(ffprobeOutput, video);
         }
     });
     updateSwarmInfo = async () => {
-        if (activeInfoHash !== infoHash || video.ended) {
+        if (video.getAttribute('data-info-hash') !== infoHash || video.ended) {
             updateSwarmInfo = () => {};
         } else {
             const url = 'https://kunkka-torrent.online/api/getSwarmInfo?' +
@@ -406,9 +432,7 @@ const addStatusInfo = (tr, statusInfo) => {
                         Dom('th', {}, '*'),
                     ]),
                 ]),
-                Dom('tbody', {}, [...data.files].sort((a,b) => {
-                    return a.path > b.path ? 1 : a.path < b.path ? -1 : 0;
-                }).map(f => Dom('tr', {}, [
+                Dom('tbody', {}, data.files.map(f => Dom('tr', {}, [
                     Dom('td', {}, f.path),
                     Dom('td', {}, (f.length / 1024 / 1024).toFixed(3) + ' MiB'),
                     Dom('td', {}, [
