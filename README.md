@@ -18,3 +18,10 @@ Will possibly update this repo with more recent dumps, maybe dumps from other tr
 Feel free to create pull requests to add any torrents you have to the `random_torrent_contributions.csv`.
 
 (will scratch some automated duplication check testing tool if there will be many contributions at some point)
+
+
+
+Just found a very similar project:
+https://gitlab.com/dessalines/torrents.csv
+
+Dunno what I should do now...
