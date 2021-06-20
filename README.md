@@ -22,6 +22,6 @@ Feel free to create pull requests to add any torrents you have to the `random_to
 
 
 Just found a very similar project:
-https://gitlab.com/dessalines/torrents.csv
+~~https://gitlab.com/dessalines/torrents.csv~~ https://codeberg.org/heretic/torrents-csv-data
 
 Dunno what I should do now...
